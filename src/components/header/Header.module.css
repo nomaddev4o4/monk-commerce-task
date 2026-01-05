@@ -1,0 +1,20 @@
+header {
+  display: flex;
+  align-items: center;
+  gap: 17.03px;
+  padding: 8px 21px;
+  border-bottom: 1px solid #d1d1d1;
+}
+
+.logo {
+  width: 30.97px;
+  height: 30.97px;
+}
+
+.title {
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0px;
+  color: #7e8185;
+  font-weight: 600;
+}
