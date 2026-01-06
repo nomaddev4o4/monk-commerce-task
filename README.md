@@ -102,6 +102,15 @@ I implemented:
 - A simple **debounce** for search input
 - “Load more” state so the UI doesn’t flicker on the initial load vs subsequent loads
 
+## Edge cases handled
+
+- **Pagination indexing mismatch (page 0 vs 1)**: the backend API uses **1-based** `page`. The UI uses a **0-based `pageIndex`** and the API client translates `pageIndex=0 → page=1` so you never get “page 0 returns same as page 1” issues.
+- **Failed image URL**: product thumbnails in the picker have an `onError` fallback that swaps the image to `/broken-image.jpg` if the remote image fails to load.
+- **Missing image / empty image URL**: if `product.image` or `product.image.src` is missing/empty, the picker uses `/broken-image.jpg`.
+- **Empty results**: if the API returns an empty list (or a non-array payload), the picker shows a “No products found” empty state.
+- **API failure**: shows an error message with a Retry button (initial load) and stops pagination.
+- **No selection**: the picker’s **Add** button is disabled when there are no new selections (and also while loading) to prevent confirming an empty selection.
+
 ### 5) Drag & drop choice
 
 I went with native HTML5 drag/drop since the requirements are fairly small (reorder in one list + nested list). The main upside is no extra dependencies; the downside is it’s not as smooth on touch devices and it’s not keyboard-accessible by default.

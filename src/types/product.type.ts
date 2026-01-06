@@ -1,8 +1,3 @@
-export interface SelectedItem {
-  productId: number;
-  variantIds: number[];
-}
-
 export interface Variant {
   id: number;
   product_id: number;
@@ -15,10 +10,10 @@ export interface Product {
   id: number;
   title: string;
   variants: Variant[];
-  image: {
+  image?: {
     id: number;
     product_id: number;
-    src: string;
+    src?: string;
   };
 }
 
@@ -34,25 +29,6 @@ export interface ProductWithDiscount extends Product {
       discountType: string;
       showDiscount: boolean;
     };
-  };
-}
-
-export interface Variant {
-  id: number;
-  product_id: number;
-  title: string;
-  price: string;
-  count?: number;
-}
-
-export interface Product {
-  id: number;
-  title: string;
-  variants: Variant[];
-  image: {
-    id: number;
-    product_id: number;
-    src: string;
   };
 }
 

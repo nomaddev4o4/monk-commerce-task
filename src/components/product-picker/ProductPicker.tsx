@@ -4,6 +4,8 @@ import { fetchProducts } from "../../services/products.api";
 import styles from "./ProductPicker.module.css";
 import type { SelectedItem, Product } from "../../types/product.type";
 
+const INITIAL_PAGE_INDEX = 0;
+
 export function ProductPickerModal({
   open,
   onClose,
@@ -21,7 +23,7 @@ export function ProductPickerModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(0);
+  const [pageIndex, setPageIndex] = useState(INITIAL_PAGE_INDEX);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function ProductPickerModal({
 
   useEffect(() => {
     if (open) {
-      setPage(0);
+      setPageIndex(INITIAL_PAGE_INDEX);
       setHasMore(true);
       setProducts([]);
       setError(null);
@@ -59,7 +61,7 @@ export function ProductPickerModal({
 
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      loadProducts(searchQuery, 0, true);
+      loadProducts(searchQuery, INITIAL_PAGE_INDEX, true);
       return;
     }
 
@@ -68,7 +70,7 @@ export function ProductPickerModal({
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      loadProducts(searchQuery, 0, true);
+      loadProducts(searchQuery, INITIAL_PAGE_INDEX, true);
     }, 500);
 
     return () => {
@@ -80,7 +82,7 @@ export function ProductPickerModal({
 
   const loadProducts = async (
     search: string,
-    pageNum: number,
+    nextPageIndex: number,
     reset = false
   ) => {
     if (reset) {
@@ -91,7 +93,7 @@ export function ProductPickerModal({
     }
 
     try {
-      const data = await fetchProducts(search, pageNum, 10);
+      const data = await fetchProducts(search, nextPageIndex, 10);
 
       const productsArray = Array.isArray(data) ? data : [];
 
@@ -108,7 +110,7 @@ export function ProductPickerModal({
       });
 
       setHasMore(productsArray.length === 10);
-      setPage(pageNum);
+      setPageIndex(nextPageIndex);
       setError(null);
     } catch (error) {
       console.error("Error loading products:", error);
@@ -132,9 +134,9 @@ export function ProductPickerModal({
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
 
     if (scrollTop + clientHeight >= scrollHeight - 50) {
-      loadProducts(searchQuery, page + 1, false);
+      loadProducts(searchQuery, pageIndex + 1, false);
     }
-  }, [isLoadingMore, hasMore, page, searchQuery]);
+  }, [isLoadingMore, hasMore, pageIndex, searchQuery]);
 
   useEffect(() => {
     const listElement = listRef.current;
@@ -253,11 +255,7 @@ export function ProductPickerModal({
       </header>
 
       <div className={styles.search}>
-        <img
-          src="/icons/search.svg"
-          alt="Search"
-          className={styles.searchIcon}
-        />
+        <img src="search.svg" alt="Search" className={styles.searchIcon} />
         <input
           className={styles.searchInput}
           placeholder="Search product"
@@ -277,7 +275,9 @@ export function ProductPickerModal({
             <p className={styles.errorText}>{error}</p>
             <button
               className={styles.retryButton}
-              onClick={() => loadProducts(searchQuery, 0, true)}
+              onClick={() =>
+                loadProducts(searchQuery, INITIAL_PAGE_INDEX, true)
+              }
             >
               Retry
             </button>
@@ -291,6 +291,15 @@ export function ProductPickerModal({
             {products.map((product) => {
               const isChecked = isProductSelected(product.id);
               const isLocked = isProductLocked(product.id);
+              const productTitle =
+                typeof product.title === "string" && product.title.trim()
+                  ? product.title
+                  : "Untitled product";
+              const imageSrc =
+                typeof product.image?.src === "string" &&
+                product.image.src.trim()
+                  ? product.image.src
+                  : "/broken-image.jpg";
 
               return (
                 <div key={product.id} className={styles.productItem}>
@@ -311,14 +320,20 @@ export function ProductPickerModal({
                       onClick={(e) => e.stopPropagation()}
                     />
                     <img
-                      src={product.image.src}
-                      alt={product.title}
+                      src={imageSrc}
+                      alt={productTitle}
                       className={styles.productImage}
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.src.includes("/broken-image.jpg")) return;
+                        img.onerror = null;
+                        img.src = "/broken-image.jpg";
+                      }}
                     />
-                    <span className={styles.productTitle}>{product.title}</span>
+                    <span className={styles.productTitle}>{productTitle}</span>
                   </div>
 
-                  {product.variants.map((variant) => {
+                  {(product.variants ?? []).map((variant) => {
                     const variantLocked = isVariantLocked(
                       product.id,
                       variant.id
@@ -348,10 +363,12 @@ export function ProductPickerModal({
                           {variant.title}
                         </span>
                         <span className={styles.variantAvailability}>
-                          {variant.count ? `${variant.count} available` : null}
+                          {typeof variant.count === "number"
+                            ? `${variant.count} available`
+                            : "N/A"}
                         </span>
                         <span className={styles.variantPrice}>
-                          ${variant.price}
+                          {variant.price ? `$${variant.price}` : "—"}
                         </span>
                       </div>
                     );
@@ -388,7 +405,9 @@ export function ProductPickerModal({
           <button
             className={styles.addButton}
             onClick={handleConfirm}
-            disabled={getNewSelectionCount() === 0}
+            disabled={
+              getNewSelectionCount() === 0 || isLoading || isLoadingMore
+            }
           >
             Add
           </button>
