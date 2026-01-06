@@ -22,6 +22,7 @@ export function ProductPickerModal({
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const isInitialMount = useRef(true);
   const listRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,7 @@ export function ProductPickerModal({
       setPage(0);
       setHasMore(true);
       setProducts([]);
+      setError(null);
     }
 
     if (open && isInitialMount.current) {
@@ -81,6 +83,7 @@ export function ProductPickerModal({
   ) => {
     if (reset) {
       setIsLoading(true);
+      setError(null);
     } else {
       setIsLoadingMore(true);
     }
@@ -106,10 +109,12 @@ export function ProductPickerModal({
 
       setHasMore(productsArray.length === 10);
       setPage(pageNum);
+      setError(null);
     } catch (error) {
       console.error("Error loading products:", error);
       if (reset) {
         setProducts([]);
+        setError("Failed to load products. Please try again.");
       }
       setHasMore(false);
     } finally {
@@ -246,6 +251,16 @@ export function ProductPickerModal({
           <div className={styles.loadingContainer}>
             <div className={styles.spinner}></div>
             <p className={styles.loadingText}>Loading products...</p>
+          </div>
+        ) : error ? (
+          <div className={styles.errorState}>
+            <p className={styles.errorText}>{error}</p>
+            <button
+              className={styles.retryButton}
+              onClick={() => loadProducts(searchQuery, 0, true)}
+            >
+              Retry
+            </button>
           </div>
         ) : !products || products.length === 0 ? (
           <div className={styles.emptyState}>
