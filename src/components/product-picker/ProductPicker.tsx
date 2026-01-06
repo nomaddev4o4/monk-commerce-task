@@ -2,29 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Modal from "../modal/Modal";
 import { fetchProducts } from "../../services/products.api";
 import styles from "./ProductPicker.module.css";
-
-interface Variant {
-  id: number;
-  product_id: number;
-  title: string;
-  price: string;
-}
-
-interface Product {
-  id: number;
-  title: string;
-  variants: Variant[];
-  image: {
-    id: number;
-    product_id: number;
-    src: string;
-  };
-}
-
-interface SelectedItem {
-  productId: number;
-  variantIds: number[];
-}
+import type { SelectedItem, Product } from "../../types/product.type";
 
 export function ProductPickerModal({
   open,
@@ -49,7 +27,6 @@ export function ProductPickerModal({
   const listRef = useRef<HTMLDivElement>(null);
   const [allLoadedProducts, setAllLoadedProducts] = useState<Product[]>([]);
 
-  // Initialize selected items when modal opens with existing products
   useEffect(() => {
     if (open && existingProducts.length > 0) {
       setSelectedItems(existingProducts);
@@ -58,7 +35,6 @@ export function ProductPickerModal({
     }
   }, [open, existingProducts]);
 
-  // Reset state when modal opens or search changes
   useEffect(() => {
     if (open) {
       setPage(0);
@@ -66,36 +42,31 @@ export function ProductPickerModal({
       setProducts([]);
     }
 
-    // Reset allLoadedProducts only when modal first opens
     if (open && isInitialMount.current) {
       setAllLoadedProducts([]);
     }
   }, [open, searchQuery]);
 
-  // Load products when modal opens or search query changes
   useEffect(() => {
     if (!open) {
       isInitialMount.current = true;
       return;
     }
 
-    // Load immediately on modal open without debounce
     if (isInitialMount.current) {
       isInitialMount.current = false;
       loadProducts(searchQuery, 0, true);
       return;
     }
 
-    // Debounced search for subsequent searches
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
     debounceTimerRef.current = setTimeout(() => {
       loadProducts(searchQuery, 0, true);
-    }, 500); // 500ms debounce
+    }, 500);
 
-    // Cleanup
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -117,9 +88,8 @@ export function ProductPickerModal({
     try {
       const data = await fetchProducts(search, pageNum, 10);
 
-      console.log("API Response:", data); // Debug log
+      console.log("API Response:", data);
 
-      // Ensure data is an array
       const productsArray = Array.isArray(data) ? data : [];
 
       if (reset) {
@@ -128,19 +98,16 @@ export function ProductPickerModal({
         setProducts((prev) => [...prev, ...productsArray]);
       }
 
-      // Store all loaded products for later reference
       setAllLoadedProducts((prev) => {
         const existingIds = new Set(prev.map((p) => p.id));
         const newProducts = productsArray.filter((p) => !existingIds.has(p.id));
         return [...prev, ...newProducts];
       });
 
-      // If we got less than 10 products, we've reached the end
       setHasMore(productsArray.length === 10);
       setPage(pageNum);
     } catch (error) {
       console.error("Error loading products:", error);
-      // Reset to empty array on error
       if (reset) {
         setProducts([]);
       }
@@ -154,19 +121,16 @@ export function ProductPickerModal({
     }
   };
 
-  // Handle scroll to load more products
   const handleScroll = useCallback(() => {
     if (!listRef.current || isLoadingMore || !hasMore) return;
 
     const { scrollTop, scrollHeight, clientHeight } = listRef.current;
 
-    // If user scrolled to bottom (with 50px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 50) {
       loadProducts(searchQuery, page + 1, false);
     }
   }, [isLoadingMore, hasMore, page, searchQuery]);
 
-  // Attach scroll listener
   useEffect(() => {
     const listElement = listRef.current;
     if (listElement && open) {
@@ -188,12 +152,10 @@ export function ProductPickerModal({
     const isSelected = isProductSelected(product.id);
 
     if (isSelected) {
-      // Remove product
       setSelectedItems((prev) =>
         prev.filter((item) => item.productId !== product.id)
       );
     } else {
-      // Add product with all variants
       setSelectedItems((prev) => [
         ...prev,
         {
@@ -209,20 +171,17 @@ export function ProductPickerModal({
       const existingProduct = prev.find((item) => item.productId === productId);
 
       if (!existingProduct) {
-        // Product not selected, add it with this variant
         return [...prev, { productId, variantIds: [variantId] }];
       }
 
       const hasVariant = existingProduct.variantIds.includes(variantId);
 
       if (hasVariant) {
-        // Remove variant
         const newVariantIds = existingProduct.variantIds.filter(
           (id) => id !== variantId
         );
 
         if (newVariantIds.length === 0) {
-          // Remove product if no variants left
           return prev.filter((item) => item.productId !== productId);
         }
 
@@ -232,7 +191,6 @@ export function ProductPickerModal({
             : item
         );
       } else {
-        // Add variant
         return prev.map((item) =>
           item.productId === productId
             ? { ...item, variantIds: [...item.variantIds, variantId] }
@@ -247,7 +205,6 @@ export function ProductPickerModal({
   };
 
   const handleConfirm = () => {
-    // Pass all loaded products, not just current search results
     onConfirm(selectedItems, allLoadedProducts);
     setSelectedItems([]);
     setSearchQuery("");
@@ -284,7 +241,6 @@ export function ProductPickerModal({
         />
       </div>
 
-      {/* PRODUCT LIST */}
       <div className={styles.list} ref={listRef}>
         {isLoading ? (
           <div className={styles.loadingContainer}>
@@ -349,7 +305,6 @@ export function ProductPickerModal({
               );
             })}
 
-            {/* Loading more indicator */}
             {isLoadingMore && (
               <div className={styles.loadingMoreContainer}>
                 <div className={styles.spinnerSmall}></div>
@@ -357,7 +312,6 @@ export function ProductPickerModal({
               </div>
             )}
 
-            {/* End of results message */}
             {!hasMore && products && products.length > 0 && (
               <div className={styles.endMessage}>
                 <p>No more products to load</p>
@@ -367,7 +321,6 @@ export function ProductPickerModal({
         )}
       </div>
 
-      {/* FOOTER */}
       <div className={styles.footer}>
         <span>
           {getSelectedCount()}{" "}

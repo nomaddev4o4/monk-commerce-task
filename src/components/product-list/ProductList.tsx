@@ -13,381 +13,17 @@ import {
   arrayMove,
   SortableContext,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { ProductPickerModal } from "../product-picker/ProductPicker";
+import SortableProductItem from "./SortableProductItem";
+import ProductItem from "./ProductItem";
 import styles from "./ProductList.module.css";
 
-interface SelectedItem {
-  productId: number;
-  variantIds: number[];
-}
-
-interface Variant {
-  id: number;
-  product_id: number;
-  title: string;
-  price: string;
-}
-
-interface Product {
-  id: number;
-  title: string;
-  variants: Variant[];
-  image: {
-    id: number;
-    product_id: number;
-    src: string;
-  };
-}
-
-interface ProductWithDiscount extends Product {
-  discount: string;
-  discountType: string;
-  showVariants: boolean;
-  selectedVariantIds: number[];
-  showDiscount: boolean;
-  variantsWithDiscount: {
-    [variantId: number]: {
-      discount: string;
-      discountType: string;
-      showDiscount: boolean;
-    };
-  };
-}
-
-function SortableProductItem({
-  product,
-  index,
-  onEdit,
-  onRemove,
-  onDiscountChange,
-  onDiscountTypeChange,
-  onToggleVariants,
-  onToggleProductDiscount,
-  onToggleVariantDiscount,
-  onVariantDiscountChange,
-  onVariantDiscountTypeChange,
-  onRemoveVariant,
-  onVariantDragEnd,
-}: {
-  product: ProductWithDiscount;
-  index: number;
-  onEdit: () => void;
-  onRemove: () => void;
-  onDiscountChange: (value: string) => void;
-  onDiscountTypeChange: (value: string) => void;
-  onToggleVariants: () => void;
-  onToggleProductDiscount: () => void;
-  onToggleVariantDiscount: (variantId: number) => void;
-  onVariantDiscountChange: (variantId: number, value: string) => void;
-  onVariantDiscountTypeChange: (variantId: number, value: string) => void;
-  onRemoveVariant: (variantId: number) => void;
-  onVariantDragEnd: (event: DragEndEvent) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: `product-${index}` });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isSortableDragging ? 0.5 : 1,
-  };
-
-  // Fix: Move useSensors hook call outside of conditional rendering
-  const variantSensors = useSensors(useSensor(PointerSensor));
-
-  const hasMultipleVariants = product.selectedVariantIds.length > 1;
-
-  // Sort variants according to selectedVariantIds order
-  const selectedVariants = product.selectedVariantIds
-    .map((variantId) =>
-      product.variants.find((v: Variant) => v.id === variantId)
-    )
-    .filter((v): v is Variant => v !== undefined);
-
-  return (
-    <div ref={setNodeRef} style={style} className={styles.productGroup}>
-      <div className={styles.productRow}>
-        <div className={styles.productRowItem}>
-          <span
-            className={styles.dragHandle}
-            {...attributes}
-            {...listeners}
-            style={{ cursor: "grab" }}
-          >
-            ⠿
-          </span>
-          <span className={styles.productNumber}>{index + 1}.</span>
-          <div className={styles.inputWrapper}>
-            <input
-              className={styles.productRowInput}
-              value={product.title}
-              readOnly
-            />
-            <button className={styles.editButton} onClick={onEdit}>
-              ✎
-            </button>
-          </div>
-        </div>
-        <div className={styles.discountGroup}>
-          {product.showDiscount ? (
-            <>
-              <input
-                type="number"
-                className={styles.discountInput}
-                value={product.discount}
-                onChange={(e) => onDiscountChange(e.target.value)}
-                placeholder="0"
-              />
-              <select
-                className={styles.discountTypeSelect}
-                value={product.discountType}
-                onChange={(e) => onDiscountTypeChange(e.target.value)}
-              >
-                <option>% Off</option>
-                <option>Flat Off</option>
-              </select>
-            </>
-          ) : (
-            <button
-              className={styles.addDiscountButton}
-              onClick={onToggleProductDiscount}
-            >
-              Add Discount
-            </button>
-          )}
-          <button className={styles.removeButton} onClick={onRemove}>
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {hasMultipleVariants && (
-        <div className={styles.variantsToggle}>
-          <button className={styles.toggleButton} onClick={onToggleVariants}>
-            {product.showVariants ? "Hide" : "Show"} variants{" "}
-            {product.showVariants ? "↑" : "↓"}
-          </button>
-        </div>
-      )}
-
-      {product.showVariants && (
-        <DndContext
-          sensors={variantSensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onVariantDragEnd}
-        >
-          <SortableContext
-            items={selectedVariants.map((v: Variant) => `variant-${v.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className={styles.variantsList}>
-              {selectedVariants.map((variant: Variant) => {
-                const variantData = product.variantsWithDiscount[variant.id];
-                return (
-                  <SortableVariantItem
-                    key={variant.id}
-                    variant={variant}
-                    variantData={variantData}
-                    onToggleVariantDiscount={() =>
-                      onToggleVariantDiscount(variant.id)
-                    }
-                    onVariantDiscountChange={(value: string) =>
-                      onVariantDiscountChange(variant.id, value)
-                    }
-                    onVariantDiscountTypeChange={(value: string) =>
-                      onVariantDiscountTypeChange(variant.id, value)
-                    }
-                    onRemoveVariant={() => onRemoveVariant(variant.id)}
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
-    </div>
-  );
-}
-
-// Product item component for DragOverlay
-function ProductItem({
-  product,
-  index,
-  onEdit,
-  onRemove,
-  onDiscountChange,
-  onDiscountTypeChange,
-  onToggleVariants,
-  onToggleProductDiscount,
-}: {
-  product: ProductWithDiscount;
-  index: number;
-  onEdit: () => void;
-  onRemove: () => void;
-  onDiscountChange: (value: string) => void;
-  onDiscountTypeChange: (value: string) => void;
-  onToggleVariants: () => void;
-  onToggleProductDiscount: () => void;
-}) {
-  const hasMultipleVariants = product.selectedVariantIds.length > 1;
-
-  return (
-    <div className={styles.productGroup}>
-      <div className={styles.productRow}>
-        <div className={styles.productRowItem}>
-          <span className={styles.dragHandle} style={{ cursor: "grabbing" }}>
-            ⠿
-          </span>
-          <span className={styles.productNumber}>{index + 1}.</span>
-          <div className={styles.inputWrapper}>
-            <input
-              className={styles.productRowInput}
-              value={product.title}
-              readOnly
-            />
-            <button className={styles.editButton} onClick={onEdit}>
-              ✎
-            </button>
-          </div>
-        </div>
-        <div className={styles.discountGroup}>
-          {product.showDiscount ? (
-            <>
-              <input
-                type="number"
-                className={styles.discountInput}
-                value={product.discount}
-                onChange={(e) => onDiscountChange(e.target.value)}
-                placeholder="0"
-              />
-              <select
-                className={styles.discountTypeSelect}
-                value={product.discountType}
-                onChange={(e) => onDiscountTypeChange(e.target.value)}
-              >
-                <option>% Off</option>
-                <option>Flat Off</option>
-              </select>
-            </>
-          ) : (
-            <button
-              className={styles.addDiscountButton}
-              onClick={onToggleProductDiscount}
-            >
-              Add Discount
-            </button>
-          )}
-          <button className={styles.removeButton} onClick={onRemove}>
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {hasMultipleVariants && (
-        <div className={styles.variantsToggle}>
-          <button className={styles.toggleButton} onClick={onToggleVariants}>
-            {product.showVariants ? "Hide" : "Show"} variants ˅
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SortableVariantItem({
-  variant,
-  variantData,
-  onToggleVariantDiscount,
-  onVariantDiscountChange,
-  onVariantDiscountTypeChange,
-  onRemoveVariant,
-}: {
-  variant: Variant;
-  variantData: {
-    discount: string;
-    discountType: string;
-    showDiscount: boolean;
-  };
-  onToggleVariantDiscount: () => void;
-  onVariantDiscountChange: (value: string) => void;
-  onVariantDiscountTypeChange: (value: string) => void;
-  onRemoveVariant: () => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: `variant-${variant.id}` });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className={styles.variantRow}>
-      <div className={styles.productRowItem}>
-        <span
-          className={styles.dragHandle}
-          {...attributes}
-          {...listeners}
-          style={{ cursor: "grab" }}
-        >
-          ⠿
-        </span>
-        <input
-          className={styles.variantRowInput}
-          value={variant.title}
-          readOnly
-        />
-      </div>
-      <div className={styles.discountGroup}>
-        {variantData.showDiscount ? (
-          <>
-            <input
-              type="number"
-              className={styles.discountInput}
-              value={variantData.discount}
-              onChange={(e) => onVariantDiscountChange(e.target.value)}
-              placeholder="0"
-            />
-            <select
-              className={styles.discountTypeSelect}
-              value={variantData.discountType}
-              onChange={(e) => onVariantDiscountTypeChange(e.target.value)}
-            >
-              <option>% Off</option>
-              <option>Flat Off</option>
-            </select>
-          </>
-        ) : (
-          <button
-            className={styles.addDiscountButton}
-            onClick={onToggleVariantDiscount}
-          >
-            Add Discount
-          </button>
-        )}
-        <button className={styles.removeButton} onClick={onRemoveVariant}>
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-}
+import type {
+  SelectedItem,
+  Product,
+  ProductWithDiscount,
+} from "../../types/product.type";
 
 function ProductList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -400,7 +36,7 @@ function ProductList() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 8px movement required before drag starts
+        distance: 8,
       },
     })
   );
@@ -420,14 +56,10 @@ function ProductList() {
     setEditingIndex(null);
   };
 
-  // Get existing selected products for the modal
   const getExistingSelections = () => {
     if (editingIndex !== null) {
-      // When editing, don't pass existing selections - let user select fresh
-      // We'll handle the replacement logic in handleConfirm
       return [];
     } else {
-      // When adding new, pass all currently selected products to prevent duplicates
       return selectedProducts.map((p) => ({
         productId: p.id,
         variantIds: p.selectedVariantIds,
@@ -471,14 +103,12 @@ function ProductList() {
       .filter((p): p is ProductWithDiscount => p !== null);
 
     if (editingIndex !== null) {
-      // Replace the product at editingIndex with new products
       setSelectedProducts((prev) => {
         const updated = [...prev];
         updated.splice(editingIndex, 1, ...newProducts);
         return updated;
       });
     } else {
-      // Add new products to the end, but filter out duplicates
       setSelectedProducts((prev) => {
         const existingProductIds = prev.map((p) => p.id);
         const uniqueNewProducts = newProducts.filter(
@@ -601,7 +231,6 @@ function ProductList() {
               (id) => id !== variantId
             );
 
-            // If no variants left, remove the entire product
             if (newSelectedVariantIds.length === 0) {
               return null;
             }
