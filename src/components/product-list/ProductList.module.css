@@ -229,21 +229,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 8px;
+  margin-bottom: 22px;
 }
 
-/* Drag overlay styling for variants */
-.variantRow[style*="cursor: grabbing"],
-.variantRow.dragging {
-  cursor: grabbing !important;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  background: white;
-  z-index: 999;
-  border-radius: 30px;
-  padding: 4px;
-}
-
-/* Apply 30px border-radius to inputs in variant rows */
 .variantRow .discountInput {
   border-radius: 30px;
 }

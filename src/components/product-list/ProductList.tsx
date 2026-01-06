@@ -173,7 +173,8 @@ function SortableProductItem({
       {hasMultipleVariants && (
         <div className={styles.variantsToggle}>
           <button className={styles.toggleButton} onClick={onToggleVariants}>
-            {product.showVariants ? "Hide" : "Show"} variants ˅
+            {product.showVariants ? "Hide" : "Show"} variants{" "}
+            {product.showVariants ? "↑" : "↓"}
           </button>
         </div>
       )}
