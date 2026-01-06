@@ -45,16 +45,6 @@
   border-bottom: none;
 }
 
-/* Drag overlay styling */
-.productGroup[style*="cursor: grabbing"],
-.productGroup.dragging {
-  cursor: grabbing !important;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  background: white;
-  z-index: 999;
-  border-radius: 4px;
-}
-
 .productRow {
   display: flex;
   justify-content: space-between;

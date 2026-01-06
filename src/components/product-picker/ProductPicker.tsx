@@ -91,8 +91,6 @@ export function ProductPickerModal({
     try {
       const data = await fetchProducts(search, pageNum, 10);
 
-      console.log("API Response:", data);
-
       const productsArray = Array.isArray(data) ? data : [];
 
       if (reset) {
