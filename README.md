@@ -121,7 +121,7 @@ I kept the UI fairly modular (separate components for the list rows, variant row
 
 For state management, I intentionally didn’t add any external state library. All state lives in the parent list component and gets passed down via props/callbacks. That keeps the dependency surface small, but it does come with some sacrifice in code quality: there’s a bit more prop-drilling and “wiring” code than I’d want in a larger app.
 
-## Known gaps / what I’d improve next
+## Known gaps
 
 - **Accessibility**: better keyboard support/focus management in the modal and for reordering.
 - **Less manual styling**: TailwindCSS would speed up iteration and keep styles more consistent.
