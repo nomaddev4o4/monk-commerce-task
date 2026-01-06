@@ -114,6 +114,13 @@ function SortableProductItem({
                 <option>% Off</option>
                 <option>Flat Off</option>
               </select>
+              <button
+                className={styles.cancelDiscountButton}
+                onClick={onToggleProductDiscount}
+                title="Remove discount"
+              >
+                Cancel
+              </button>
             </>
           ) : (
             <button

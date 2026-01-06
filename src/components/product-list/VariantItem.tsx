@@ -67,6 +67,13 @@ function VariantItem({
               <option>% Off</option>
               <option>Flat Off</option>
             </select>
+            <button
+              className={styles.cancelDiscountButton}
+              onClick={onToggleVariantDiscount}
+              title="Remove discount"
+            >
+              Cancel
+            </button>
           </>
         ) : (
           <button
@@ -85,4 +92,3 @@ function VariantItem({
 }
 
 export default VariantItem;
-

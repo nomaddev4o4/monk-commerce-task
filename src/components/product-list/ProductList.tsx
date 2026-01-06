@@ -309,7 +309,9 @@ function ProductList() {
                 </button>
               </div>
             </div>
-            <button className={styles.addDiscountButton}>Add Discount</button>
+            <button className={styles.addDiscountButton} disabled>
+              Add Discount
+            </button>
           </div>
         ) : (
           <>
