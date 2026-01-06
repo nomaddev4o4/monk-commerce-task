@@ -1,4 +1,19 @@
 import { useState, useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ProductPickerModal } from "../product-picker/ProductPicker";
 import { fetchProducts } from "../../services/products.api";
 import styles from "./ProductList.module.css";
@@ -41,6 +56,223 @@ interface ProductWithDiscount extends Product {
   };
 }
 
+function SortableProductItem({
+  product,
+  index,
+  onEdit,
+  onRemove,
+  onDiscountChange,
+  onDiscountTypeChange,
+  onToggleVariants,
+  onToggleProductDiscount,
+  onToggleVariantDiscount,
+  onVariantDiscountChange,
+  onVariantDiscountTypeChange,
+  onRemoveVariant,
+  onVariantDragEnd,
+}: {
+  product: ProductWithDiscount;
+  index: number;
+  onEdit: () => void;
+  onRemove: () => void;
+  onDiscountChange: (value: string) => void;
+  onDiscountTypeChange: (value: string) => void;
+  onToggleVariants: () => void;
+  onToggleProductDiscount: () => void;
+  onToggleVariantDiscount: (variantId: number) => void;
+  onVariantDiscountChange: (variantId: number, value: string) => void;
+  onVariantDiscountTypeChange: (variantId: number, value: string) => void;
+  onRemoveVariant: (variantId: number) => void;
+  onVariantDragEnd: (event: DragEndEvent) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: `product-${index}` });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  const hasMultipleVariants = product.selectedVariantIds.length > 1;
+  const selectedVariants = product.variants.filter((v: any) =>
+    product.selectedVariantIds.includes(v.id)
+  );
+
+  return (
+    <div ref={setNodeRef} style={style} className={styles.productGroup}>
+      <div className={styles.productRow}>
+        <div className={styles.productRowItem}>
+          <span
+            className={styles.dragHandle}
+            {...attributes}
+            {...listeners}
+            style={{ cursor: "grab" }}
+          >
+            ⠿
+          </span>
+          <span className={styles.productNumber}>{index + 1}.</span>
+          <div className={styles.inputWrapper}>
+            <input
+              className={styles.productRowInput}
+              value={product.title}
+              readOnly
+            />
+            <button className={styles.editButton} onClick={onEdit}>
+              ✎
+            </button>
+          </div>
+        </div>
+        <div className={styles.discountGroup}>
+          {product.showDiscount ? (
+            <>
+              <input
+                type="number"
+                className={styles.discountInput}
+                value={product.discount}
+                onChange={(e) => onDiscountChange(e.target.value)}
+                placeholder="0"
+              />
+              <select
+                className={styles.discountTypeSelect}
+                value={product.discountType}
+                onChange={(e) => onDiscountTypeChange(e.target.value)}
+              >
+                <option>% Off</option>
+                <option>Flat Off</option>
+              </select>
+            </>
+          ) : (
+            <button
+              className={styles.addDiscountButton}
+              onClick={onToggleProductDiscount}
+            >
+              Add Discount
+            </button>
+          )}
+          <button className={styles.removeButton} onClick={onRemove}>
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {hasMultipleVariants && (
+        <div className={styles.variantsToggle}>
+          <button className={styles.toggleButton} onClick={onToggleVariants}>
+            {product.showVariants ? "Hide" : "Show"} variants ˅
+          </button>
+        </div>
+      )}
+
+      {hasMultipleVariants && product.showVariants && (
+        <DndContext
+          sensors={useSensors(useSensor(PointerSensor))}
+          collisionDetection={closestCenter}
+          onDragEnd={onVariantDragEnd}
+        >
+          <SortableContext
+            items={selectedVariants.map((v: any) => `variant-${v.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className={styles.variantsList}>
+              {selectedVariants.map((variant: any) => {
+                const variantData = product.variantsWithDiscount[variant.id];
+                return (
+                  <SortableVariantItem
+                    key={variant.id}
+                    variant={variant}
+                    variantData={variantData}
+                    onToggleVariantDiscount={() =>
+                      onToggleVariantDiscount(variant.id)
+                    }
+                    onVariantDiscountChange={(value: string) =>
+                      onVariantDiscountChange(variant.id, value)
+                    }
+                    onVariantDiscountTypeChange={(value: string) =>
+                      onVariantDiscountTypeChange(variant.id, value)
+                    }
+                    onRemoveVariant={() => onRemoveVariant(variant.id)}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  );
+}
+
+function SortableVariantItem({
+  variant,
+  variantData,
+  onToggleVariantDiscount,
+  onVariantDiscountChange,
+  onVariantDiscountTypeChange,
+  onRemoveVariant,
+}: {
+  variant: Variant;
+  variantData: {
+    discount: string;
+    discountType: string;
+    showDiscount: boolean;
+  };
+  onToggleVariantDiscount: () => void;
+  onVariantDiscountChange: (value: string) => void;
+  onVariantDiscountTypeChange: (value: string) => void;
+  onRemoveVariant: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: `variant-${variant.id}` });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div ref={setNodeRef} style={style} className={styles.variantRow}>
+      <div className={styles.productRowItem}>
+        <span
+          className={styles.dragHandle}
+          {...attributes}
+          {...listeners}
+          style={{ cursor: "grab" }}
+        >
+          ⠿
+        </span>
+        <input
+          className={styles.variantRowInput}
+          value={variant.title}
+          readOnly
+        />
+      </div>
+      <div className={styles.discountGroup}>
+        {variantData.showDiscount ? (
+          <>
+            <input
+              type="number"
+              className={styles.discountInput}
+              value={variantData.discount}
+              onChange={(e) => onVariantDiscountChange(e.target.value)}
+              placeholder="0"
+            />
+            <select
+              className={styles.discountTypeSelect}
+              value={variantData.discountType}
+              onChange={(e) => onVariantDiscountTypeChange(e.target.value)}
+            >
+              <option>% Off</option>
+              <option>Flat Off</option>
+            </select>
+          </>
+        ) : (
+          <button
+            className={styles.addDiscountButton}
+            onClick={onToggleVariantDiscount}
+          >
+            Add Discount
+          </button>
+        )}
+        <button className={styles.removeButton} onClick={onRemoveVariant}>
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ProductList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<
@@ -48,6 +280,8 @@ function ProductList() {
   >([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -257,6 +491,46 @@ function ProductList() {
     );
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setSelectedProducts((items) => {
+        const oldIndex = items.findIndex(
+          (_, i) => `product-${i}` === active.id
+        );
+        const newIndex = items.findIndex((_, i) => `product-${i}` === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleVariantDragEnd = (productIndex: number, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setSelectedProducts((prev) =>
+        prev.map((p, i) => {
+          if (i === productIndex) {
+            const oldIndex = p.selectedVariantIds.findIndex(
+              (id) => `variant-${id}` === active.id
+            );
+            const newIndex = p.selectedVariantIds.findIndex(
+              (id) => `variant-${id}` === over.id
+            );
+            return {
+              ...p,
+              selectedVariantIds: arrayMove(
+                p.selectedVariantIds,
+                oldIndex,
+                newIndex
+              ),
+            };
+          }
+          return p;
+        })
+      );
+    }
+  };
+
   return (
     <div className={styles.productList}>
       <header className={styles.header}>Add Products</header>
@@ -286,159 +560,49 @@ function ProductList() {
             <button className={styles.addDiscountButton}>Add Discount</button>
           </div>
         ) : (
-          selectedProducts.map((product, index) => {
-            const hasMultipleVariants = product.selectedVariantIds.length > 1;
-            const selectedVariants = product.variants.filter((v) =>
-              product.selectedVariantIds.includes(v.id)
-            );
-
-            return (
-              <div
-                key={`${product.id}-${index}`}
-                className={styles.productGroup}
-              >
-                <div className={styles.productRow}>
-                  <div className={styles.productRowItem}>
-                    <span className={styles.dragHandle}>⠿</span>
-                    <span className={styles.productNumber}>{index + 1}.</span>
-                    <div className={styles.inputWrapper}>
-                      <input
-                        className={styles.productRowInput}
-                        value={product.title}
-                        readOnly
-                      />
-                      <button
-                        className={styles.editButton}
-                        onClick={() => handleEditProduct(index)}
-                      >
-                        ✎
-                      </button>
-                    </div>
-                  </div>
-                  <div className={styles.discountGroup}>
-                    {product.showDiscount ? (
-                      <>
-                        <input
-                          type="number"
-                          className={styles.discountInput}
-                          value={product.discount}
-                          onChange={(e) =>
-                            handleDiscountChange(index, e.target.value)
-                          }
-                          placeholder="0"
-                        />
-                        <select
-                          className={styles.discountTypeSelect}
-                          value={product.discountType}
-                          onChange={(e) =>
-                            handleDiscountTypeChange(index, e.target.value)
-                          }
-                        >
-                          <option>% Off</option>
-                          <option>Flat Off</option>
-                        </select>
-                      </>
-                    ) : (
-                      <button
-                        className={styles.addDiscountButton}
-                        onClick={() => toggleProductDiscount(index)}
-                      >
-                        Add Discount
-                      </button>
-                    )}
-                    <button
-                      className={styles.removeButton}
-                      onClick={() => handleRemoveProduct(index)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                {hasMultipleVariants && (
-                  <div className={styles.variantsToggle}>
-                    <button
-                      className={styles.toggleButton}
-                      onClick={() => toggleVariants(index)}
-                    >
-                      {product.showVariants ? "Hide" : "Show"} variants ˅
-                    </button>
-                  </div>
-                )}
-
-                {hasMultipleVariants && product.showVariants && (
-                  <div className={styles.variantsList}>
-                    {selectedVariants.map((variant) => {
-                      const variantData =
-                        product.variantsWithDiscount[variant.id];
-                      return (
-                        <div key={variant.id} className={styles.variantRow}>
-                          <div className={styles.productRowItem}>
-                            <span className={styles.dragHandle}>⠿</span>
-                            <input
-                              className={styles.variantRowInput}
-                              value={variant.title}
-                              readOnly
-                            />
-                          </div>
-                          <div className={styles.discountGroup}>
-                            {variantData.showDiscount ? (
-                              <>
-                                <input
-                                  type="number"
-                                  className={styles.discountInput}
-                                  value={variantData.discount}
-                                  onChange={(e) =>
-                                    handleVariantDiscountChange(
-                                      index,
-                                      variant.id,
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="0"
-                                />
-                                <select
-                                  className={styles.discountTypeSelect}
-                                  value={variantData.discountType}
-                                  onChange={(e) =>
-                                    handleVariantDiscountTypeChange(
-                                      index,
-                                      variant.id,
-                                      e.target.value
-                                    )
-                                  }
-                                >
-                                  <option>% Off</option>
-                                  <option>Flat Off</option>
-                                </select>
-                              </>
-                            ) : (
-                              <button
-                                className={styles.addDiscountButton}
-                                onClick={() =>
-                                  toggleVariantDiscount(index, variant.id)
-                                }
-                              >
-                                Add Discount
-                              </button>
-                            )}
-                            <button
-                              className={styles.removeButton}
-                              onClick={() =>
-                                handleRemoveVariant(index, variant.id)
-                              }
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={selectedProducts.map((_, i) => `product-${i}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              {selectedProducts.map((product, index) => (
+                <SortableProductItem
+                  key={`product-${index}`}
+                  product={product}
+                  index={index}
+                  onEdit={() => handleEditProduct(index)}
+                  onRemove={() => handleRemoveProduct(index)}
+                  onDiscountChange={(value) =>
+                    handleDiscountChange(index, value)
+                  }
+                  onDiscountTypeChange={(value) =>
+                    handleDiscountTypeChange(index, value)
+                  }
+                  onToggleVariants={() => toggleVariants(index)}
+                  onToggleProductDiscount={() => toggleProductDiscount(index)}
+                  onToggleVariantDiscount={(variantId) =>
+                    toggleVariantDiscount(index, variantId)
+                  }
+                  onVariantDiscountChange={(variantId, value) =>
+                    handleVariantDiscountChange(index, variantId, value)
+                  }
+                  onVariantDiscountTypeChange={(variantId, value) =>
+                    handleVariantDiscountTypeChange(index, variantId, value)
+                  }
+                  onRemoveVariant={(variantId) =>
+                    handleRemoveVariant(index, variantId)
+                  }
+                  onVariantDragEnd={(event) =>
+                    handleVariantDragEnd(index, event)
+                  }
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </main>
 
