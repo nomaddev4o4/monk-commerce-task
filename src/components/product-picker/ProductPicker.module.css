@@ -188,8 +188,14 @@
   color: white;
 }
 
-.addButton:hover {
+.addButton:hover:not(:disabled) {
   background: #097d5c;
+}
+
+.addButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .loadingContainer {

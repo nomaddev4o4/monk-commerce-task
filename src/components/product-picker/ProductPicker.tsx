@@ -9,11 +9,13 @@ export function ProductPickerModal({
   onClose,
   onConfirm,
   existingProducts = [],
+  lockedProducts = [],
 }: {
   open: boolean;
   onClose: () => void;
   onConfirm: (selected: SelectedItem[], products: Product[]) => void;
   existingProducts?: { productId: number; variantIds: number[] }[];
+  lockedProducts?: { productId: number; variantIds: number[] }[];
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,6 +144,15 @@ export function ProductPickerModal({
     }
   }, [open, handleScroll]);
 
+  const isProductLocked = (productId: number) => {
+    return lockedProducts.some((item) => item.productId === productId);
+  };
+
+  const isVariantLocked = (productId: number, variantId: number) => {
+    const product = lockedProducts.find((item) => item.productId === productId);
+    return product?.variantIds.includes(variantId) || false;
+  };
+
   const isProductSelected = (productId: number) => {
     return selectedItems.some((item) => item.productId === productId);
   };
@@ -152,6 +163,8 @@ export function ProductPickerModal({
   };
 
   const toggleProduct = (product: Product) => {
+    if (isProductLocked(product.id)) return; // Don't allow toggling locked products
+
     const isSelected = isProductSelected(product.id);
 
     if (isSelected) {
@@ -170,6 +183,8 @@ export function ProductPickerModal({
   };
 
   const toggleVariant = (productId: number, variantId: number) => {
+    if (isVariantLocked(productId, variantId)) return; // Don't allow toggling locked variants
+
     setSelectedItems((prev) => {
       const existingProduct = prev.find((item) => item.productId === productId);
 
@@ -205,6 +220,13 @@ export function ProductPickerModal({
 
   const getSelectedCount = () => {
     return selectedItems.length;
+  };
+
+  const getNewSelectionCount = () => {
+    const lockedProductIds = lockedProducts.map((p) => p.productId);
+    return selectedItems.filter(
+      (item) => !lockedProductIds.includes(item.productId)
+    ).length;
   };
 
   const handleConfirm = () => {
@@ -268,17 +290,23 @@ export function ProductPickerModal({
           <>
             {products.map((product) => {
               const isChecked = isProductSelected(product.id);
+              const isLocked = isProductLocked(product.id);
 
               return (
                 <div key={product.id} className={styles.productItem}>
                   <div
                     className={styles.productHeader}
-                    onClick={() => toggleProduct(product)}
+                    onClick={() => !isLocked && toggleProduct(product)}
+                    style={{
+                      cursor: isLocked ? "not-allowed" : "pointer",
+                      opacity: isLocked ? 0.6 : 1,
+                    }}
                   >
                     <input
                       type="checkbox"
                       className={styles.checkbox}
                       checked={isChecked}
+                      disabled={isLocked}
                       onChange={() => toggleProduct(product)}
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -290,30 +318,44 @@ export function ProductPickerModal({
                     <span className={styles.productTitle}>{product.title}</span>
                   </div>
 
-                  {product.variants.map((variant) => (
-                    <div
-                      key={variant.id}
-                      className={styles.variantItem}
-                      onClick={() => toggleVariant(product.id, variant.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        className={styles.checkbox}
-                        checked={isVariantSelected(product.id, variant.id)}
-                        onChange={() => toggleVariant(product.id, variant.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <span className={styles.variantTitle}>
-                        {variant.title}
-                      </span>
-                      <span className={styles.variantAvailability}>
-                        99 available
-                      </span>
-                      <span className={styles.variantPrice}>
-                        ${variant.price}
-                      </span>
-                    </div>
-                  ))}
+                  {product.variants.map((variant) => {
+                    const variantLocked = isVariantLocked(
+                      product.id,
+                      variant.id
+                    );
+                    return (
+                      <div
+                        key={variant.id}
+                        className={styles.variantItem}
+                        onClick={() =>
+                          !variantLocked &&
+                          toggleVariant(product.id, variant.id)
+                        }
+                        style={{
+                          cursor: variantLocked ? "not-allowed" : "pointer",
+                          opacity: variantLocked ? 0.6 : 1,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.checkbox}
+                          checked={isVariantSelected(product.id, variant.id)}
+                          disabled={variantLocked}
+                          onChange={() => toggleVariant(product.id, variant.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className={styles.variantTitle}>
+                          {variant.title}
+                        </span>
+                        <span className={styles.variantAvailability}>
+                          99 available
+                        </span>
+                        <span className={styles.variantPrice}>
+                          ${variant.price}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -343,7 +385,11 @@ export function ProductPickerModal({
           <button className={styles.cancelButton} onClick={handleClose}>
             Cancel
           </button>
-          <button className={styles.addButton} onClick={handleConfirm}>
+          <button
+            className={styles.addButton}
+            onClick={handleConfirm}
+            disabled={getNewSelectionCount() === 0}
+          >
             Add
           </button>
         </div>
