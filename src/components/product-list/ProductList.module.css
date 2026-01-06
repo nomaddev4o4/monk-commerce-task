@@ -253,6 +253,14 @@
   border-radius: 30px;
 }
 
+.variantRow .addDiscountButton {
+  border-radius: 30px;
+}
+
+.variantRow .cancelDiscountButton {
+  border-radius: 30px;
+}
+
 .variantRowInput {
   font-weight: 400;
   font-size: 14px;
