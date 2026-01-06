@@ -40,8 +40,6 @@ function ProductList() {
   };
 
   const getLockedSelections = () => {
-    // Always lock all previously selected products
-    // When editing, the user can only select NEW products which will replace the edited one
     return selectedProducts.map((p) => ({
       productId: p.id,
       variantIds: p.selectedVariantIds,
@@ -49,7 +47,6 @@ function ProductList() {
   };
 
   const handleConfirm = (selected: SelectedItem[], allProducts: Product[]) => {
-    // Filter out locked products - only process NEW selections
     const lockedProductIds = selectedProducts.map((p) => p.id);
     const newSelections = selected.filter(
       (item) => !lockedProductIds.includes(item.productId)
@@ -90,14 +87,12 @@ function ProductList() {
       .filter((p): p is ProductWithDiscount => p !== null);
 
     if (editingIndex !== null) {
-      // Replace the edited product with new selections
       setSelectedProducts((prev) => {
         const updated = [...prev];
         updated.splice(editingIndex, 1, ...newProducts);
         return updated;
       });
     } else {
-      // Add new products (shouldn't happen since all are locked, but keep for safety)
       setSelectedProducts((prev) => {
         const existingProductIds = prev.map((p) => p.id);
         const uniqueNewProducts = newProducts.filter(

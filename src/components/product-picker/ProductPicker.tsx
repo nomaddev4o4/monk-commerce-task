@@ -165,7 +165,7 @@ export function ProductPickerModal({
   };
 
   const toggleProduct = (product: Product) => {
-    if (isProductLocked(product.id)) return; // Don't allow toggling locked products
+    if (isProductLocked(product.id)) return;
 
     const isSelected = isProductSelected(product.id);
 
@@ -185,7 +185,7 @@ export function ProductPickerModal({
   };
 
   const toggleVariant = (productId: number, variantId: number) => {
-    if (isVariantLocked(productId, variantId)) return; // Don't allow toggling locked variants
+    if (isVariantLocked(productId, variantId)) return;
 
     setSelectedItems((prev) => {
       const existingProduct = prev.find((item) => item.productId === productId);
