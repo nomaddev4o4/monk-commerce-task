@@ -348,7 +348,7 @@ export function ProductPickerModal({
                           {variant.title}
                         </span>
                         <span className={styles.variantAvailability}>
-                          99 available
+                          {variant.count ? `${variant.count} available` : null}
                         </span>
                         <span className={styles.variantPrice}>
                           ${variant.price}

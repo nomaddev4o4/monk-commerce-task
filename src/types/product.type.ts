@@ -8,6 +8,7 @@ export interface Variant {
   product_id: number;
   title: string;
   price: string;
+  count?: number;
 }
 
 export interface Product {
@@ -41,6 +42,7 @@ export interface Variant {
   product_id: number;
   title: string;
   price: string;
+  count?: number;
 }
 
 export interface Product {

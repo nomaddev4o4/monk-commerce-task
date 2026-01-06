@@ -320,6 +320,7 @@ function ProductList() {
                 key={`product-${index}`}
                 product={product}
                 index={index}
+                canRemove={selectedProducts.length > 1}
                 onEdit={() => handleEditProduct(index)}
                 onRemove={() => handleRemoveProduct(index)}
                 onDiscountChange={(value) => handleDiscountChange(index, value)}

@@ -6,6 +6,7 @@ import type { ProductWithDiscount, Variant } from "../../types/product.type";
 interface SortableProductItemProps {
   product: ProductWithDiscount;
   index: number;
+  canRemove: boolean;
   onEdit: () => void;
   onRemove: () => void;
   onDiscountChange: (value: string) => void;
@@ -26,6 +27,7 @@ interface SortableProductItemProps {
 function SortableProductItem({
   product,
   index,
+  canRemove,
   onEdit,
   onRemove,
   onDiscountChange,
@@ -130,9 +132,11 @@ function SortableProductItem({
               Add Discount
             </button>
           )}
-          <button className={styles.removeButton} onClick={onRemove}>
-            ✕
-          </button>
+          {canRemove && (
+            <button className={styles.removeButton} onClick={onRemove}>
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
