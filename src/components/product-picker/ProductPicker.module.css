@@ -1,0 +1,193 @@
+.header {
+  padding: 14px 28px 6.5px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerTitle {
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 27px;
+  margin: 0;
+}
+
+.closeButton {
+  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+}
+
+.closeButton:hover {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.search {
+  padding: 12px 16px;
+  position: relative;
+  border-bottom: 1px solid #eee;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17px;
+  height: 17px;
+  pointer-events: none;
+}
+
+.searchInput {
+  padding: 10px 12px 10px 44px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #0b8f6b;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.productItem {
+  border-bottom: 1px solid #eee;
+}
+
+.productHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.productHeader:hover {
+  background: #fafafa;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0b8f6b;
+  flex-shrink: 0;
+}
+
+.productImage {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.productTitle {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.variantItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 62px;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.variantItem:hover {
+  background: #f5f5f5;
+}
+
+.variantTitle {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  min-width: 150px;
+}
+
+.variantAvailability {
+  font-size: 14px;
+  color: #666;
+  min-width: 100px;
+}
+
+.variantPrice {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  text-align: right;
+  min-width: 60px;
+}
+
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+}
+
+.footer span {
+  font-size: 14px;
+  color: #333;
+}
+
+.footerButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelButton,
+.addButton {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancelButton {
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.cancelButton:hover {
+  background: #f5f5f5;
+}
+
+.addButton {
+  background: #0b8f6b;
+  color: white;
+}
+
+.addButton:hover {
+  background: #097d5c;
+}

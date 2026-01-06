@@ -1,0 +1,258 @@
+.productList {
+  margin-top: 69px;
+  max-width: 700px;
+}
+
+.header {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #202223;
+  margin-bottom: 20px;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+.headerRowTitle {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  color: #333;
+  margin: 0;
+}
+
+.headerRowTitle:first-child {
+  margin-left: 46px;
+}
+
+.headerRowTitle:last-child {
+  margin-right: 48px;
+}
+
+.productGroup {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.productGroup:last-child {
+  border-bottom: none;
+}
+
+.productRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.productRowItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.dragHandle {
+  font-size: 16px;
+  color: #999;
+  cursor: grab;
+  user-select: none;
+}
+
+.productNumber {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  min-width: 20px;
+}
+
+.inputWrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.productRowInput {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 21px;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #ddd;
+  box-shadow: 0px 2px 4px 0px #0000001a;
+  border-radius: 4px;
+  flex: 1;
+  background: white;
+  cursor: pointer;
+  width: 100%;
+}
+
+.productRowInput:focus {
+  outline: none;
+  border-color: #008060;
+}
+
+.editButton {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 6px 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editButton:hover {
+  color: #333;
+}
+
+.discountGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discountInput {
+  width: 80px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.discountInput:focus {
+  outline: none;
+  border-color: #008060;
+}
+
+.discountTypeSelect {
+  padding: 8px 28px 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.discountTypeSelect:focus {
+  outline: none;
+  border-color: #008060;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.removeButton:hover {
+  color: #333;
+}
+
+.addDiscountButton {
+  padding: 8px 24px;
+  color: #ffffff;
+  background-color: #008060;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addDiscountButton:hover {
+  background-color: #006e52;
+}
+
+.variantsToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+  margin-right: 48px;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: #006fbb;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.toggleButton:hover {
+  color: #004a99;
+}
+
+.variantsList {
+  margin-left: 46px;
+  margin-top: 8px;
+}
+
+.variantRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.variantRowInput {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 21px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  box-shadow: 0px 2px 4px 0px #0000001a;
+  border-radius: 8px;
+  flex: 1;
+  background: white;
+  cursor: default;
+}
+
+.footer {
+  margin-top: 21px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addProductButton {
+  padding: 14px 53px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  border-radius: 4px;
+  border: 2px solid #008060;
+  background: white;
+  color: #008060;
+  cursor: pointer;
+}
+
+.addProductButton:hover {
+  background: #f0fdf8;
+}
