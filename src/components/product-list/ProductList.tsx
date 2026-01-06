@@ -1,22 +1,6 @@
 import { useState } from "react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  DragOverlay,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { ProductPickerModal } from "../product-picker/ProductPicker";
 import SortableProductItem from "./SortableProductItem";
-import ProductItem from "./ProductItem";
 import styles from "./ProductList.module.css";
 
 import type {
@@ -31,15 +15,7 @@ function ProductList() {
     ProductWithDiscount[]
   >([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleOpenModal = () => {
     setEditingIndex(null);
@@ -250,54 +226,48 @@ function ProductList() {
     );
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+  const handleProductDragStart = (index: number) => {
+    setDraggedIndex(index);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (over && active.id !== over.id) {
+  const handleProductDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
       setSelectedProducts((items) => {
-        const oldIndex = items.findIndex(
-          (_, i) => `product-${i}` === active.id
-        );
-        const newIndex = items.findIndex((_, i) => `product-${i}` === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newItems = [...items];
+        const draggedItem = newItems[draggedIndex];
+        newItems.splice(draggedIndex, 1);
+        newItems.splice(index, 0, draggedItem);
+        return newItems;
       });
+      setDraggedIndex(index);
     }
   };
 
-  const handleDragCancel = () => {
-    setActiveId(null);
+  const handleProductDrop = () => {
+    setDraggedIndex(null);
   };
 
-  const handleVariantDragEnd = (productIndex: number, event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setSelectedProducts((prev) =>
-        prev.map((p, i) => {
-          if (i === productIndex) {
-            const oldIndex = p.selectedVariantIds.findIndex(
-              (id) => `variant-${id}` === active.id
-            );
-            const newIndex = p.selectedVariantIds.findIndex(
-              (id) => `variant-${id}` === over.id
-            );
-            return {
-              ...p,
-              selectedVariantIds: arrayMove(
-                p.selectedVariantIds,
-                oldIndex,
-                newIndex
-              ),
-            };
-          }
-          return p;
-        })
-      );
-    }
+  const handleVariantReorder = (
+    productIndex: number,
+    oldIndex: number,
+    newIndex: number
+  ) => {
+    setSelectedProducts((prev) =>
+      prev.map((p, i) => {
+        if (i === productIndex) {
+          const newVariantIds = [...p.selectedVariantIds];
+          const movedId = newVariantIds[oldIndex];
+          newVariantIds.splice(oldIndex, 1);
+          newVariantIds.splice(newIndex, 0, movedId);
+          return {
+            ...p,
+            selectedVariantIds: newVariantIds,
+          };
+        }
+        return p;
+      })
+    );
   };
 
   return (
@@ -329,67 +299,42 @@ function ProductList() {
             <button className={styles.addDiscountButton}>Add Discount</button>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <SortableContext
-              items={selectedProducts.map((_, i) => `product-${i}`)}
-              strategy={verticalListSortingStrategy}
-            >
-              {selectedProducts.map((product, index) => (
-                <SortableProductItem
-                  key={`product-${index}`}
-                  product={product}
-                  index={index}
-                  onEdit={() => handleEditProduct(index)}
-                  onRemove={() => handleRemoveProduct(index)}
-                  onDiscountChange={(value) =>
-                    handleDiscountChange(index, value)
-                  }
-                  onDiscountTypeChange={(value) =>
-                    handleDiscountTypeChange(index, value)
-                  }
-                  onToggleVariants={() => toggleVariants(index)}
-                  onToggleProductDiscount={() => toggleProductDiscount(index)}
-                  onToggleVariantDiscount={(variantId) =>
-                    toggleVariantDiscount(index, variantId)
-                  }
-                  onVariantDiscountChange={(variantId, value) =>
-                    handleVariantDiscountChange(index, variantId, value)
-                  }
-                  onVariantDiscountTypeChange={(variantId, value) =>
-                    handleVariantDiscountTypeChange(index, variantId, value)
-                  }
-                  onRemoveVariant={(variantId) =>
-                    handleRemoveVariant(index, variantId)
-                  }
-                  onVariantDragEnd={(event) =>
-                    handleVariantDragEnd(index, event)
-                  }
-                />
-              ))}
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>
-              {activeId ? (
-                <ProductItem
-                  product={
-                    selectedProducts[parseInt(activeId.replace("product-", ""))]
-                  }
-                  index={parseInt(activeId.replace("product-", ""))}
-                  onEdit={() => {}}
-                  onRemove={() => {}}
-                  onDiscountChange={() => {}}
-                  onDiscountTypeChange={() => {}}
-                  onToggleVariants={() => {}}
-                  onToggleProductDiscount={() => {}}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          <>
+            {selectedProducts.map((product, index) => (
+              <SortableProductItem
+                key={`product-${index}`}
+                product={product}
+                index={index}
+                onEdit={() => handleEditProduct(index)}
+                onRemove={() => handleRemoveProduct(index)}
+                onDiscountChange={(value) => handleDiscountChange(index, value)}
+                onDiscountTypeChange={(value) =>
+                  handleDiscountTypeChange(index, value)
+                }
+                onToggleVariants={() => toggleVariants(index)}
+                onToggleProductDiscount={() => toggleProductDiscount(index)}
+                onToggleVariantDiscount={(variantId) =>
+                  toggleVariantDiscount(index, variantId)
+                }
+                onVariantDiscountChange={(variantId, value) =>
+                  handleVariantDiscountChange(index, variantId, value)
+                }
+                onVariantDiscountTypeChange={(variantId, value) =>
+                  handleVariantDiscountTypeChange(index, variantId, value)
+                }
+                onRemoveVariant={(variantId) =>
+                  handleRemoveVariant(index, variantId)
+                }
+                onVariantReorder={(oldIndex, newIndex) =>
+                  handleVariantReorder(index, oldIndex, newIndex)
+                }
+                onDragStart={() => handleProductDragStart(index)}
+                onDragOver={(e) => handleProductDragOver(e, index)}
+                onDrop={handleProductDrop}
+                isDragging={draggedIndex === index}
+              />
+            ))}
+          </>
         )}
       </main>
 

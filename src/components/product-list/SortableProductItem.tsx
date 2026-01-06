@@ -1,18 +1,5 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import SortableVariantItem from "./SortableVariantItem";
+import { useState } from "react";
+import VariantItem from "./VariantItem";
 import styles from "./ProductList.module.css";
 import type { ProductWithDiscount, Variant } from "../../types/product.type";
 
@@ -29,7 +16,11 @@ interface SortableProductItemProps {
   onVariantDiscountChange: (variantId: number, value: string) => void;
   onVariantDiscountTypeChange: (variantId: number, value: string) => void;
   onRemoveVariant: (variantId: number) => void;
-  onVariantDragEnd: (event: DragEndEvent) => void;
+  onVariantReorder: (oldIndex: number, newIndex: number) => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: () => void;
+  isDragging: boolean;
 }
 
 function SortableProductItem({
@@ -45,24 +36,15 @@ function SortableProductItem({
   onVariantDiscountChange,
   onVariantDiscountTypeChange,
   onRemoveVariant,
-  onVariantDragEnd,
+  onVariantReorder,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragging,
 }: SortableProductItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: `product-${index}` });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isSortableDragging ? 0.5 : 1,
-  };
-
-  const variantSensors = useSensors(useSensor(PointerSensor));
+  const [draggedVariantIndex, setDraggedVariantIndex] = useState<number | null>(
+    null
+  );
 
   const hasMultipleVariants = product.selectedVariantIds.length > 1;
 
@@ -72,16 +54,34 @@ function SortableProductItem({
     )
     .filter((v): v is Variant => v !== undefined);
 
+  const handleVariantDragStart = (variantIndex: number) => {
+    setDraggedVariantIndex(variantIndex);
+  };
+
+  const handleVariantDragOver = (e: React.DragEvent, variantIndex: number) => {
+    e.preventDefault();
+    if (draggedVariantIndex !== null && draggedVariantIndex !== variantIndex) {
+      onVariantReorder(draggedVariantIndex, variantIndex);
+      setDraggedVariantIndex(variantIndex);
+    }
+  };
+
+  const handleVariantDragEnd = () => {
+    setDraggedVariantIndex(null);
+  };
+
   return (
-    <div ref={setNodeRef} style={style} className={styles.productGroup}>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={styles.productGroup}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
       <div className={styles.productRow}>
         <div className={styles.productRowItem}>
-          <span
-            className={styles.dragHandle}
-            {...attributes}
-            {...listeners}
-            style={{ cursor: "grab" }}
-          >
+          <span className={styles.dragHandle} style={{ cursor: "grab" }}>
             ⠿
           </span>
           <span className={styles.productNumber}>{index + 1}.</span>
@@ -139,39 +139,32 @@ function SortableProductItem({
       )}
 
       {product.showVariants && (
-        <DndContext
-          sensors={variantSensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onVariantDragEnd}
-        >
-          <SortableContext
-            items={selectedVariants.map((v: Variant) => `variant-${v.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className={styles.variantsList}>
-              {selectedVariants.map((variant: Variant) => {
-                const variantData = product.variantsWithDiscount[variant.id];
-                return (
-                  <SortableVariantItem
-                    key={variant.id}
-                    variant={variant}
-                    variantData={variantData}
-                    onToggleVariantDiscount={() =>
-                      onToggleVariantDiscount(variant.id)
-                    }
-                    onVariantDiscountChange={(value: string) =>
-                      onVariantDiscountChange(variant.id, value)
-                    }
-                    onVariantDiscountTypeChange={(value: string) =>
-                      onVariantDiscountTypeChange(variant.id, value)
-                    }
-                    onRemoveVariant={() => onRemoveVariant(variant.id)}
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <div className={styles.variantsList}>
+          {selectedVariants.map((variant: Variant, variantIndex: number) => {
+            const variantData = product.variantsWithDiscount[variant.id];
+            return (
+              <VariantItem
+                key={variant.id}
+                variant={variant}
+                variantData={variantData}
+                onToggleVariantDiscount={() =>
+                  onToggleVariantDiscount(variant.id)
+                }
+                onVariantDiscountChange={(value: string) =>
+                  onVariantDiscountChange(variant.id, value)
+                }
+                onVariantDiscountTypeChange={(value: string) =>
+                  onVariantDiscountTypeChange(variant.id, value)
+                }
+                onRemoveVariant={() => onRemoveVariant(variant.id)}
+                onDragStart={() => handleVariantDragStart(variantIndex)}
+                onDragOver={(e) => handleVariantDragOver(e, variantIndex)}
+                onDragEnd={handleVariantDragEnd}
+                isDragging={draggedVariantIndex === variantIndex}
+              />
+            );
+          })}
+        </div>
       )}
     </div>
   );
