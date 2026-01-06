@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Modal from "../modal/Modal";
 import { fetchProducts } from "../../services/products.api";
 import styles from "./ProductPicker.module.css";
@@ -30,28 +30,135 @@ export function ProductPickerModal({
   open,
   onClose,
   onConfirm,
+  existingProducts = [],
 }: {
   open: boolean;
   onClose: () => void;
-  onConfirm: (selected: SelectedItem[]) => void;
+  onConfirm: (selected: SelectedItem[], products: Product[]) => void;
+  existingProducts?: { productId: number; variantIds: number[] }[];
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const debounceTimerRef = useRef<number | null>(null);
+  const isInitialMount = useRef(true);
+  const listRef = useRef<HTMLDivElement>(null);
 
+  // Initialize selected items when modal opens with existing products
+  useEffect(() => {
+    if (open && existingProducts.length > 0) {
+      setSelectedItems(existingProducts);
+    }
+  }, [open, existingProducts]);
+
+  // Reset state when modal opens or search changes
   useEffect(() => {
     if (open) {
-      const loadProducts = async () => {
-        try {
-          const data = await fetchProducts(searchQuery);
-          setProducts(data);
-        } catch (error) {
-          console.error("Error loading products:", error);
-        }
-      };
-      loadProducts();
+      setPage(0);
+      setHasMore(true);
+      setProducts([]);
     }
   }, [open, searchQuery]);
+
+  // Load products when modal opens or search query changes
+  useEffect(() => {
+    if (!open) {
+      isInitialMount.current = true;
+      return;
+    }
+
+    // Load immediately on modal open without debounce
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      loadProducts(searchQuery, 0, true);
+      return;
+    }
+
+    // Debounced search for subsequent searches
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      loadProducts(searchQuery, 0, true);
+    }, 500); // 500ms debounce
+
+    // Cleanup
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery, open]);
+
+  const loadProducts = async (
+    search: string,
+    pageNum: number,
+    reset = false
+  ) => {
+    if (reset) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    try {
+      const data = await fetchProducts(search, pageNum, 10);
+      
+      console.log('API Response:', data); // Debug log
+      
+      // Ensure data is an array
+      const productsArray = Array.isArray(data) ? data : [];
+
+      if (reset) {
+        setProducts(productsArray);
+      } else {
+        setProducts((prev) => [...prev, ...productsArray]);
+      }
+
+      // If we got less than 10 products, we've reached the end
+      setHasMore(productsArray.length === 10);
+      setPage(pageNum);
+    } catch (error) {
+      console.error("Error loading products:", error);
+      // Reset to empty array on error
+      if (reset) {
+        setProducts([]);
+      }
+      setHasMore(false);
+    } finally {
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
+    }
+  };
+
+  // Handle scroll to load more products
+  const handleScroll = useCallback(() => {
+    if (!listRef.current || isLoadingMore || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+
+    // If user scrolled to bottom (with 50px threshold)
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      loadProducts(searchQuery, page + 1, false);
+    }
+  }, [isLoadingMore, hasMore, page, searchQuery]);
+
+  // Attach scroll listener
+  useEffect(() => {
+    const listElement = listRef.current;
+    if (listElement && open) {
+      listElement.addEventListener("scroll", handleScroll);
+      return () => listElement.removeEventListener("scroll", handleScroll);
+    }
+  }, [open, handleScroll]);
 
   const isProductSelected = (productId: number) => {
     return selectedItems.some((item) => item.productId === productId);
@@ -125,7 +232,7 @@ export function ProductPickerModal({
   };
 
   const handleConfirm = () => {
-    onConfirm(selectedItems);
+    onConfirm(selectedItems, products || []);
     setSelectedItems([]);
     setSearchQuery("");
   };
@@ -160,54 +267,86 @@ export function ProductPickerModal({
       </div>
 
       {/* PRODUCT LIST */}
-      <div className={styles.list}>
-        {products.map((product) => {
-          const isChecked = isProductSelected(product.id);
+      <div className={styles.list} ref={listRef}>
+        {isLoading ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner}></div>
+            <p className={styles.loadingText}>Loading products...</p>
+          </div>
+        ) : !products || products.length === 0 ? (
+          <div className={styles.emptyState}>
+            <p>No products found</p>
+          </div>
+        ) : (
+          <>
+            {products.map((product) => {
+              const isChecked = isProductSelected(product.id);
 
-          return (
-            <div key={product.id} className={styles.productItem}>
-              <div
-                className={styles.productHeader}
-                onClick={() => toggleProduct(product)}
-              >
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={isChecked}
-                  onChange={() => toggleProduct(product)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <img
-                  src={product.image.src}
-                  alt={product.title}
-                  className={styles.productImage}
-                />
-                <span className={styles.productTitle}>{product.title}</span>
-              </div>
+              return (
+                <div key={product.id} className={styles.productItem}>
+                  <div
+                    className={styles.productHeader}
+                    onClick={() => toggleProduct(product)}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.checkbox}
+                      checked={isChecked}
+                      onChange={() => toggleProduct(product)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <img
+                      src={product.image.src}
+                      alt={product.title}
+                      className={styles.productImage}
+                    />
+                    <span className={styles.productTitle}>{product.title}</span>
+                  </div>
 
-              {product.variants.map((variant) => (
-                <div
-                  key={variant.id}
-                  className={styles.variantItem}
-                  onClick={() => toggleVariant(product.id, variant.id)}
-                >
-                  <input
-                    type="checkbox"
-                    className={styles.checkbox}
-                    checked={isVariantSelected(product.id, variant.id)}
-                    onChange={() => toggleVariant(product.id, variant.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <span className={styles.variantTitle}>{variant.title}</span>
-                  <span className={styles.variantAvailability}>
-                    99 available
-                  </span>
-                  <span className={styles.variantPrice}>${variant.price}</span>
+                  {product.variants.map((variant) => (
+                    <div
+                      key={variant.id}
+                      className={styles.variantItem}
+                      onClick={() => toggleVariant(product.id, variant.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={isVariantSelected(product.id, variant.id)}
+                        onChange={() => toggleVariant(product.id, variant.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className={styles.variantTitle}>
+                        {variant.title}
+                      </span>
+                      <span className={styles.variantAvailability}>
+                        99 available
+                      </span>
+                      <span className={styles.variantPrice}>
+                        ${variant.price}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          );
-        })}
+              );
+            })}
+
+            {/* Loading more indicator */}
+            {isLoadingMore && (
+              <div className={styles.loadingMoreContainer}>
+                <div className={styles.spinnerSmall}></div>
+                <p className={styles.loadingMoreText}>Loading more...</p>
+              </div>
+            )}
+
+            {/* End of results message */}
+            {!hasMore && products && products.length > 0 && (
+              <div className={styles.endMessage}>
+                <p>No more products to load</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* FOOTER */}

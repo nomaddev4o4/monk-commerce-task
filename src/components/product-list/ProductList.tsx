@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -15,7 +15,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ProductPickerModal } from "../product-picker/ProductPicker";
-import { fetchProducts } from "../../services/products.api";
 import styles from "./ProductList.module.css";
 
 interface SelectedItem {
@@ -89,10 +88,15 @@ function SortableProductItem({
     useSortable({ id: `product-${index}` });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
+  // Fix: Move useSensors hook call outside of conditional rendering
+  const variantSensors = useSensors(useSensor(PointerSensor));
+
   const hasMultipleVariants = product.selectedVariantIds.length > 1;
-  const selectedVariants = product.variants.filter((v: any) =>
-    product.selectedVariantIds.includes(v.id)
-  );
+  
+  // Sort variants according to selectedVariantIds order
+  const selectedVariants = product.selectedVariantIds
+    .map((variantId) => product.variants.find((v: Variant) => v.id === variantId))
+    .filter((v): v is Variant => v !== undefined);
 
   return (
     <div ref={setNodeRef} style={style} className={styles.productGroup}>
@@ -159,18 +163,18 @@ function SortableProductItem({
         </div>
       )}
 
-      {hasMultipleVariants && product.showVariants && (
+      {product.showVariants && (
         <DndContext
-          sensors={useSensors(useSensor(PointerSensor))}
+          sensors={variantSensors}
           collisionDetection={closestCenter}
           onDragEnd={onVariantDragEnd}
         >
           <SortableContext
-            items={selectedVariants.map((v: any) => `variant-${v.id}`)}
+            items={selectedVariants.map((v: Variant) => `variant-${v.id}`)}
             strategy={verticalListSortingStrategy}
           >
             <div className={styles.variantsList}>
-              {selectedVariants.map((variant: any) => {
+              {selectedVariants.map((variant: Variant) => {
                 const variantData = product.variantsWithDiscount[variant.id];
                 return (
                   <SortableVariantItem
@@ -278,23 +282,9 @@ function ProductList() {
   const [selectedProducts, setSelectedProducts] = useState<
     ProductWithDiscount[]
   >([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor));
-
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await fetchProducts();
-        setAllProducts(data);
-      } catch (error) {
-        console.error("Error loading products:", error);
-      }
-    };
-
-    loadProducts();
-  }, []);
 
   const handleOpenModal = () => {
     setEditingIndex(null);
@@ -311,7 +301,27 @@ function ProductList() {
     setEditingIndex(null);
   };
 
-  const handleConfirm = (selected: SelectedItem[]) => {
+  // Get existing selected products for the modal
+  const getExistingSelections = () => {
+    if (editingIndex !== null) {
+      // When editing, only pass the product being edited
+      const product = selectedProducts[editingIndex];
+      return [
+        {
+          productId: product.id,
+          variantIds: product.selectedVariantIds,
+        },
+      ];
+    } else {
+      // When adding new, pass all currently selected products to prevent duplicates
+      return selectedProducts.map((p) => ({
+        productId: p.id,
+        variantIds: p.selectedVariantIds,
+      }));
+    }
+  };
+
+  const handleConfirm = (selected: SelectedItem[], allProducts: Product[]) => {
     const newProducts = selected
       .map((item) => {
         const product = allProducts.find((p) => p.id === item.productId);
@@ -354,8 +364,14 @@ function ProductList() {
         return updated;
       });
     } else {
-      // Add new products to the end
-      setSelectedProducts((prev) => [...prev, ...newProducts]);
+      // Add new products to the end, but filter out duplicates
+      setSelectedProducts((prev) => {
+        const existingProductIds = prev.map((p) => p.id);
+        const uniqueNewProducts = newProducts.filter(
+          (p) => !existingProductIds.includes(p.id)
+        );
+        return [...prev, ...uniqueNewProducts];
+      });
     }
 
     setIsModalOpen(false);
@@ -616,6 +632,7 @@ function ProductList() {
         open={isModalOpen}
         onClose={handleCloseModal}
         onConfirm={handleConfirm}
+        existingProducts={getExistingSelections()}
       />
     </div>
   );
