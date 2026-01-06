@@ -4,7 +4,7 @@ This repo is my submission for the Monk Commerce Frontend Developer task. It imp
 
 ## Live demo
 
-- **Netlify URL**: _add your link here_
+- **Netlify URL**: https://monk-commerce-task.netlify.app/
 
 ## Tech stack
 
