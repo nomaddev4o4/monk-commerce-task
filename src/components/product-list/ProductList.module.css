@@ -45,6 +45,16 @@
   border-bottom: none;
 }
 
+/* Drag overlay styling */
+.productGroup[style*="cursor: grabbing"],
+.productGroup.dragging {
+  cursor: grabbing !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  background: white;
+  z-index: 999;
+  border-radius: 4px;
+}
+
 .productRow {
   display: flex;
   justify-content: space-between;
@@ -222,6 +232,26 @@
   margin-bottom: 8px;
 }
 
+/* Drag overlay styling for variants */
+.variantRow[style*="cursor: grabbing"],
+.variantRow.dragging {
+  cursor: grabbing !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  background: white;
+  z-index: 999;
+  border-radius: 30px;
+  padding: 4px;
+}
+
+/* Apply 30px border-radius to inputs in variant rows */
+.variantRow .discountInput {
+  border-radius: 30px;
+}
+
+.variantRow .discountTypeSelect {
+  border-radius: 30px;
+}
+
 .variantRowInput {
   font-weight: 400;
   font-size: 14px;
@@ -229,7 +259,7 @@
   padding: 8px 12px;
   border: 1px solid #ddd;
   box-shadow: 0px 2px 4px 0px #0000001a;
-  border-radius: 8px;
+  border-radius: 30px;
   flex: 1;
   background: white;
   cursor: default;

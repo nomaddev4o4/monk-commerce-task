@@ -6,6 +6,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -84,18 +86,31 @@ function SortableProductItem({
   onRemoveVariant: (variantId: number) => void;
   onVariantDragEnd: (event: DragEndEvent) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: `product-${index}` });
-  const style = { transform: CSS.Transform.toString(transform), transition };
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isSortableDragging,
+  } = useSortable({ id: `product-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isSortableDragging ? 0.5 : 1,
+  };
 
   // Fix: Move useSensors hook call outside of conditional rendering
   const variantSensors = useSensors(useSensor(PointerSensor));
 
   const hasMultipleVariants = product.selectedVariantIds.length > 1;
-  
+
   // Sort variants according to selectedVariantIds order
   const selectedVariants = product.selectedVariantIds
-    .map((variantId) => product.variants.find((v: Variant) => v.id === variantId))
+    .map((variantId) =>
+      product.variants.find((v: Variant) => v.id === variantId)
+    )
     .filter((v): v is Variant => v !== undefined);
 
   return (
@@ -202,6 +217,91 @@ function SortableProductItem({
   );
 }
 
+// Product item component for DragOverlay
+function ProductItem({
+  product,
+  index,
+  onEdit,
+  onRemove,
+  onDiscountChange,
+  onDiscountTypeChange,
+  onToggleVariants,
+  onToggleProductDiscount,
+}: {
+  product: ProductWithDiscount;
+  index: number;
+  onEdit: () => void;
+  onRemove: () => void;
+  onDiscountChange: (value: string) => void;
+  onDiscountTypeChange: (value: string) => void;
+  onToggleVariants: () => void;
+  onToggleProductDiscount: () => void;
+}) {
+  const hasMultipleVariants = product.selectedVariantIds.length > 1;
+
+  return (
+    <div className={styles.productGroup}>
+      <div className={styles.productRow}>
+        <div className={styles.productRowItem}>
+          <span className={styles.dragHandle} style={{ cursor: "grabbing" }}>
+            ⠿
+          </span>
+          <span className={styles.productNumber}>{index + 1}.</span>
+          <div className={styles.inputWrapper}>
+            <input
+              className={styles.productRowInput}
+              value={product.title}
+              readOnly
+            />
+            <button className={styles.editButton} onClick={onEdit}>
+              ✎
+            </button>
+          </div>
+        </div>
+        <div className={styles.discountGroup}>
+          {product.showDiscount ? (
+            <>
+              <input
+                type="number"
+                className={styles.discountInput}
+                value={product.discount}
+                onChange={(e) => onDiscountChange(e.target.value)}
+                placeholder="0"
+              />
+              <select
+                className={styles.discountTypeSelect}
+                value={product.discountType}
+                onChange={(e) => onDiscountTypeChange(e.target.value)}
+              >
+                <option>% Off</option>
+                <option>Flat Off</option>
+              </select>
+            </>
+          ) : (
+            <button
+              className={styles.addDiscountButton}
+              onClick={onToggleProductDiscount}
+            >
+              Add Discount
+            </button>
+          )}
+          <button className={styles.removeButton} onClick={onRemove}>
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {hasMultipleVariants && (
+        <div className={styles.variantsToggle}>
+          <button className={styles.toggleButton} onClick={onToggleVariants}>
+            {product.showVariants ? "Hide" : "Show"} variants ˅
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SortableVariantItem({
   variant,
   variantData,
@@ -221,9 +321,20 @@ function SortableVariantItem({
   onVariantDiscountTypeChange: (value: string) => void;
   onRemoveVariant: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: `variant-${variant.id}` });
-  const style = { transform: CSS.Transform.toString(transform), transition };
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `variant-${variant.id}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   return (
     <div ref={setNodeRef} style={style} className={styles.variantRow}>
@@ -283,8 +394,15 @@ function ProductList() {
     ProductWithDiscount[]
   >([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required before drag starts
+      },
+    })
+  );
 
   const handleOpenModal = () => {
     setEditingIndex(null);
@@ -507,8 +625,14 @@ function ProductList() {
     );
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
+
     if (over && active.id !== over.id) {
       setSelectedProducts((items) => {
         const oldIndex = items.findIndex(
@@ -518,6 +642,10 @@ function ProductList() {
         return arrayMove(items, oldIndex, newIndex);
       });
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   const handleVariantDragEnd = (productIndex: number, event: DragEndEvent) => {
@@ -579,7 +707,9 @@ function ProductList() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
               items={selectedProducts.map((_, i) => `product-${i}`)}
@@ -618,6 +748,22 @@ function ProductList() {
                 />
               ))}
             </SortableContext>
+            <DragOverlay dropAnimation={null}>
+              {activeId ? (
+                <ProductItem
+                  product={
+                    selectedProducts[parseInt(activeId.replace("product-", ""))]
+                  }
+                  index={parseInt(activeId.replace("product-", ""))}
+                  onEdit={() => {}}
+                  onRemove={() => {}}
+                  onDiscountChange={() => {}}
+                  onDiscountTypeChange={() => {}}
+                  onToggleVariants={() => {}}
+                  onToggleProductDiscount={() => {}}
+                />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
       </main>
