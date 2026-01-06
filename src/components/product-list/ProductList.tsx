@@ -422,14 +422,9 @@ function ProductList() {
   // Get existing selected products for the modal
   const getExistingSelections = () => {
     if (editingIndex !== null) {
-      // When editing, only pass the product being edited
-      const product = selectedProducts[editingIndex];
-      return [
-        {
-          productId: product.id,
-          variantIds: product.selectedVariantIds,
-        },
-      ];
+      // When editing, don't pass existing selections - let user select fresh
+      // We'll handle the replacement logic in handleConfirm
+      return [];
     } else {
       // When adding new, pass all currently selected products to prevent duplicates
       return selectedProducts.map((p) => ({

@@ -47,11 +47,14 @@ export function ProductPickerModal({
   const debounceTimerRef = useRef<number | null>(null);
   const isInitialMount = useRef(true);
   const listRef = useRef<HTMLDivElement>(null);
+  const [allLoadedProducts, setAllLoadedProducts] = useState<Product[]>([]);
 
   // Initialize selected items when modal opens with existing products
   useEffect(() => {
     if (open && existingProducts.length > 0) {
       setSelectedItems(existingProducts);
+    } else if (open) {
+      setSelectedItems([]);
     }
   }, [open, existingProducts]);
 
@@ -61,6 +64,11 @@ export function ProductPickerModal({
       setPage(0);
       setHasMore(true);
       setProducts([]);
+    }
+
+    // Reset allLoadedProducts only when modal first opens
+    if (open && isInitialMount.current) {
+      setAllLoadedProducts([]);
     }
   }, [open, searchQuery]);
 
@@ -108,9 +116,9 @@ export function ProductPickerModal({
 
     try {
       const data = await fetchProducts(search, pageNum, 10);
-      
-      console.log('API Response:', data); // Debug log
-      
+
+      console.log("API Response:", data); // Debug log
+
       // Ensure data is an array
       const productsArray = Array.isArray(data) ? data : [];
 
@@ -119,6 +127,13 @@ export function ProductPickerModal({
       } else {
         setProducts((prev) => [...prev, ...productsArray]);
       }
+
+      // Store all loaded products for later reference
+      setAllLoadedProducts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newProducts = productsArray.filter((p) => !existingIds.has(p.id));
+        return [...prev, ...newProducts];
+      });
 
       // If we got less than 10 products, we've reached the end
       setHasMore(productsArray.length === 10);
@@ -232,15 +247,18 @@ export function ProductPickerModal({
   };
 
   const handleConfirm = () => {
-    onConfirm(selectedItems, products || []);
+    // Pass all loaded products, not just current search results
+    onConfirm(selectedItems, allLoadedProducts);
     setSelectedItems([]);
     setSearchQuery("");
+    setAllLoadedProducts([]);
   };
 
   const handleClose = () => {
     onClose();
     setSelectedItems([]);
     setSearchQuery("");
+    setAllLoadedProducts([]);
   };
 
   return (
