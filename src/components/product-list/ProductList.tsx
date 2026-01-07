@@ -54,7 +54,12 @@ function ProductList() {
   };
 
   const handleConfirm = (selected: SelectedItem[], allProducts: Product[]) => {
-    const lockedProductIds = selectedProducts.map((p) => p.id);
+    const editingProductId =
+      editingIndex !== null ? selectedProducts[editingIndex]?.id : undefined;
+
+    const lockedProductIds = selectedProducts
+      .map((p) => p.id)
+      .filter((id) => id !== editingProductId);
     const newSelections = selected.filter(
       (item) => !lockedProductIds.includes(item.productId)
     );
@@ -101,11 +106,38 @@ function ProductList() {
       });
     } else {
       setSelectedProducts((prev) => {
-        const existingProductIds = prev.map((p) => p.id);
+        const next = prev.map((p) => {
+          const selection = selected.find((s) => s.productId === p.id);
+          if (!selection) return p;
+
+          const addedVariantIds = selection.variantIds.filter(
+            (id) => !p.selectedVariantIds.includes(id)
+          );
+          if (addedVariantIds.length === 0) return p;
+
+          const nextVariantsWithDiscount = { ...p.variantsWithDiscount };
+          addedVariantIds.forEach((variantId) => {
+            if (!nextVariantsWithDiscount[variantId]) {
+              nextVariantsWithDiscount[variantId] = {
+                discount: "",
+                discountType: "% Off",
+                showDiscount: false,
+              };
+            }
+          });
+
+          return {
+            ...p,
+            selectedVariantIds: [...p.selectedVariantIds, ...addedVariantIds],
+            variantsWithDiscount: nextVariantsWithDiscount,
+          };
+        });
+
+        const existingProductIds = next.map((p) => p.id);
         const uniqueNewProducts = newProducts.filter(
           (p) => !existingProductIds.includes(p.id)
         );
-        return [...prev, ...uniqueNewProducts];
+        return [...next, ...uniqueNewProducts];
       });
     }
 
@@ -368,6 +400,9 @@ function ProductList() {
         onConfirm={handleConfirm}
         existingProducts={getExistingSelections()}
         lockedProducts={getLockedSelections()}
+        editingProductId={
+          editingIndex !== null ? selectedProducts[editingIndex]?.id : undefined
+        }
       />
     </div>
   );

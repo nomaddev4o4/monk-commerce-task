@@ -12,12 +12,14 @@ export function ProductPickerModal({
   onConfirm,
   existingProducts = [],
   lockedProducts = [],
+  editingProductId,
 }: {
   open: boolean;
   onClose: () => void;
   onConfirm: (selected: SelectedItem[], products: Product[]) => void;
   existingProducts?: { productId: number; variantIds: number[] }[];
   lockedProducts?: { productId: number; variantIds: number[] }[];
+  editingProductId?: number;
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,13 +176,21 @@ export function ProductPickerModal({
         prev.filter((item) => item.productId !== product.id)
       );
     } else {
-      setSelectedItems((prev) => [
-        ...prev,
-        {
-          productId: product.id,
-          variantIds: product.variants.map((v) => v.id),
-        },
-      ]);
+      setSelectedItems((prev) => {
+        const next =
+          typeof editingProductId === "number" &&
+          product.id !== editingProductId
+            ? prev.filter((item) => item.productId !== editingProductId)
+            : prev;
+
+        return [
+          ...next,
+          {
+            productId: product.id,
+            variantIds: product.variants.map((v) => v.id),
+          },
+        ];
+      });
     }
   };
 
@@ -229,6 +239,15 @@ export function ProductPickerModal({
     return selectedItems.filter(
       (item) => !lockedProductIds.includes(item.productId)
     ).length;
+  };
+
+  const hasVariantAdditionsForLockedProducts = () => {
+    return selectedItems.some((item) => {
+      const locked = lockedProducts.find((p) => p.productId === item.productId);
+      if (!locked) return false;
+      const lockedSet = new Set(locked.variantIds);
+      return item.variantIds.some((id) => !lockedSet.has(id));
+    });
   };
 
   const handleConfirm = () => {
@@ -406,7 +425,10 @@ export function ProductPickerModal({
             className={styles.addButton}
             onClick={handleConfirm}
             disabled={
-              getNewSelectionCount() === 0 || isLoading || isLoadingMore
+              (getNewSelectionCount() === 0 &&
+                !hasVariantAdditionsForLockedProducts()) ||
+              isLoading ||
+              isLoadingMore
             }
           >
             Add
