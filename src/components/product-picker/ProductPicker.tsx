@@ -365,7 +365,7 @@ export function ProductPickerModal({
                         <span className={styles.variantAvailability}>
                           {typeof variant.count === "number"
                             ? `${variant.count} available`
-                            : "N/A"}
+                            : null}
                         </span>
                         <span className={styles.variantPrice}>
                           {variant.price ? `$${variant.price}` : "—"}

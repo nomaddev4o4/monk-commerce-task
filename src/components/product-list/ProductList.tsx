@@ -40,10 +40,17 @@ function ProductList() {
   };
 
   const getLockedSelections = () => {
-    return selectedProducts.map((p) => ({
-      productId: p.id,
-      variantIds: p.selectedVariantIds,
-    }));
+    return selectedProducts
+      .map((p, index) => {
+        if (editingIndex !== null && index === editingIndex) {
+          return null;
+        }
+        return {
+          productId: p.id,
+          variantIds: p.selectedVariantIds,
+        };
+      })
+      .filter((p) => p !== null);
   };
 
   const handleConfirm = (selected: SelectedItem[], allProducts: Product[]) => {
